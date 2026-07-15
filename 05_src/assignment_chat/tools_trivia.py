@@ -47,13 +47,13 @@ def check_answer(user_message: str, correct_answer: str) -> bool:
     correct_answer = correct_answer.lower()
     return user_message == correct_answer
 
-def reveal_answer(question_data: dict, is_correct: bool, llm) -> str:
+def reveal_answer(question_data: dict, user_answer: bool, llm) -> str:
     prompt = (
         f'''You are the host of "Truth or Bluff!", reacting to a contestant's answer.
 
 The question was: {question_data["question"]}
 The correct answer was: {question_data["correct_answer"]}
-The contestant answered: {is_correct}
+The contestant answered: {user_answer}
 
 Rules:
 - React enthusiastically if correct, encouragingly if incorrect
@@ -65,9 +65,19 @@ Rules:
     response = llm.invoke(prompt)
     return response.content
 
-def is_affirmative(message: str) -> bool:
-    is_yes = message.strip().lower() == "yes"
-    return is_yes
+def is_affirmative(message):
+    message = message.lower()
+
+    return any(word in message for word in [
+        "yes",
+        "sure",
+        "tell",
+        "explain",
+        "more",
+        "why",
+        "how",
+        "detail"
+    ])
 
 
 def get_related_facts(query: str, question_data: dict, llm, openai_client, n_results: int = 3,) -> str:
@@ -91,4 +101,24 @@ Background information:
 Write a fun, engaging explanation in 2-3 sentences. Don't repeat the trivia question verbatim.
 """
     response = llm.invoke(prompt)
+    return response.content
+
+def generate_fun_fact(context, llm):
+    prompt = f"""
+You are a science trivia game show host.
+
+Based on the scientific information below, provide one surprising
+and interesting fun fact related to the topic.
+
+Rules:
+- Keep it under 2 sentences.
+- Do not repeat the explanation.
+- Make it entertaining for a general audience.
+
+Scientific information:
+{context}
+"""
+
+    response = llm.invoke(prompt)
+
     return response.content

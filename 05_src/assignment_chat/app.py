@@ -9,7 +9,7 @@ from openai import OpenAI
 
 from langchain.chat_models import init_chat_model
 
-from tools_trivia import (rephrase_trivia_question, get_trivia_question, check_answer, reveal_answer, is_affirmative, get_related_facts)
+from tools_trivia import (rephrase_trivia_question, get_trivia_question, check_answer, reveal_answer, is_affirmative, get_related_facts,generate_fun_fact)
 
 env_path = Path(__file__).parent.parent / ".secrets"
 load_dotenv(env_path)
@@ -40,7 +40,7 @@ def simple_chat(message: str, history: list[dict]) -> str:
     elif game_state == "AWAITING_ANSWER":
         is_correct = check_answer(message, current_question_data['correct_answer'])
         game_state = "AWAITING_MORE_INFO" 
-        return reveal_answer(current_question_data, is_correct, llm)
+        return reveal_answer(current_question_data, message, llm)
     elif game_state == "AWAITING_MORE_INFO":
         is_yes = is_affirmative(message)
         if is_yes:
@@ -49,14 +49,22 @@ def simple_chat(message: str, history: list[dict]) -> str:
                 f"{current_question_data['question']}"
             )
 
-            return get_related_facts(
+            related_facts = get_related_facts(
                 query=search_query,
                 question_data=current_question_data,
                 llm=llm,
              openai_client=openai_client
             )
+
+            fun_fact = generate_fun_fact(context=related_facts, llm=llm)
+            return f"""{related_facts}
+             
+               Fun Fact: {fun_fact}"""
+        else: 
+            game_state ="NEW_QUESTION"
+            return "Ready for another round whenever you are!"
     game_state = "NEW_QUESTION"
-    return "No worries! Ready for another round whenever you are."
+    return "Ready for another round whenever you are!"
         
         
 
